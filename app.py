@@ -22,7 +22,7 @@ session = create_session(bind = engine)
 
 app = Flask(__name__)
 
-
+last_twelve_months = '2016-08-23'
 
 @app.route("/")
 def home():
@@ -38,20 +38,33 @@ def home():
 
 @app.route("/api/v1.0/precipitation")
 def percipitation():
-   return 'Percipitation'
+    p_results = session.query(Measurement.date, func.avg(Measurement.prcp)).filter(Measurement.date >= last_twelve_months).group_by(Measurement.date).all()
+    results = [tuple(row) for row in p_results]
+
+    return json.dumps(results)
 
 @app.route("/api/v1.0/stations")
 def stations():
-    return 'Stations'
+    s_results = session.query(Station.station, Station.name).all()
+    results = [tuple(row) for row in s_results]
+    return json.dumps(results)
 
 @app.route("/api/v1.0/tobs")
 def tobs():
-    return 'TOBS'
+    t_results = session.query(Measurement.date, Measurement.station, Measurement.tobs).filter(Measurement.date >= last_twelve_months).all()
+    results = [tuple(row) for row in t_results]
+    return json.dumps(results)
 
-@app.route("/api/v1.0/<start>")
+@app.route("/api/v1.0/start_date")
 def startdate():
-    return 'startdate average min max'
+    date = request.args.startdate
+    
+    day_temp_results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).filter(Measurement.date >= date).all()
+    results = [tuple(row) for row in day_temp_results]
+    return json.dumps(results)
 
 @app.route("/api/v1.0/<start>/<end>")
 def startenddate():
-    return 'startdate & enddate average min max'
+    multi_day_temp_results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).filter(Measurement.date >= start).filter(Measurement.date <= end).all()
+    results = [tuple(row) for row in multi_day_temp_results]
+    return json.dumps(results)
